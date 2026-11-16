@@ -1,0 +1,114 @@
+/* minúscula — estilos partilhados por todas as páginas */
+
+/* u = 1px do design original (1440px de largura); escala com o ecrã */
+:root { --u: calc(min(100vw, 1440px) / 1440); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: #000; color: #fff; }
+
+body {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-weight: 400;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+.site {
+  width: 100%;
+  max-width: 1440px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main { flex: 1; position: relative; }
+
+/* ---------- início ---------- */
+.home { padding: calc(var(--u) * 160) calc(var(--u) * 304) 0; }
+.home .logo { display: block; width: 100%; height: auto; }
+.home p {
+  font-size: calc(var(--u) * 32);
+  line-height: 1.2;
+  margin: calc(var(--u) * 12) 0 0 calc(var(--u) * 40);
+}
+
+/* ---------- páginas internas ---------- */
+.logo-small {
+  position: absolute;
+  left: calc(var(--u) * 68);
+  top: calc(var(--u) * 56);
+  width: calc(var(--u) * 260);
+}
+.logo-small img { width: 100%; height: auto; display: block; }
+
+.content {
+  padding: calc(var(--u) * 152) calc(var(--u) * 80) calc(var(--u) * 60) 0;
+  margin-left: auto;
+  width: calc(var(--u) * 1080);
+  max-width: 100%;
+  text-align: right;
+}
+
+h1 { font-weight: 400; font-size: calc(var(--u) * 80); line-height: 1.3; }
+
+.text {
+  margin: calc(var(--u) * 52) 0 0 auto;
+  width: calc(var(--u) * 760);
+  max-width: 100%;
+}
+.text p { font-size: calc(var(--u) * 34); line-height: 1.3; margin-bottom: calc(var(--u) * 24); }
+.text > .ex { font-size: calc(var(--u) * 28); }
+
+.item { margin: 0 0 calc(var(--u) * 52) auto; width: 100%; }
+.item p { font-size: calc(var(--u) * 34); line-height: 1.3; }
+.item .ex { font-size: calc(var(--u) * 28); margin-top: calc(var(--u) * 20); }
+
+a { color: inherit; text-decoration: none; }
+.item a:hover, .text a:hover { text-decoration: underline; }
+
+/* ---------- jogo incorporado ---------- */
+.game {
+  margin: calc(var(--u) * 24) 0 0 auto;
+  width: calc(var(--u) * 920);
+  max-width: 100%;
+}
+.game iframe {
+  display: block;
+  width: 100%;
+  height: max(560px, calc(var(--u) * 700));
+  border: 0;
+  background: #11131a;
+}
+.game .ex { font-size: calc(var(--u) * 24); margin-top: calc(var(--u) * 12); }
+
+/* ---------- navegação do rodapé ---------- */
+nav {
+  height: calc(var(--u) * 160);
+  min-height: 56px;
+  padding: 0 calc(var(--u) * 80);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: calc(var(--u) * 26);
+  line-height: 1.2;
+}
+nav a { white-space: nowrap; }
+nav a:hover { text-decoration: underline; }
+
+/* telemóvel: tamanhos mínimos legíveis */
+@media (max-width: 700px) {
+  .home { padding: 25vh 6vw 0; }
+  .home p { font-size: 18px; margin-left: 4vw; }
+  .logo-small { left: 6vw; top: 24px; width: 120px; }
+  .content { padding: 110px 6vw 24px 6vw; width: 100%; }
+  h1 { font-size: 44px; }
+  .text, .item { width: 100%; }
+  .text p, .item p { font-size: 20px; }
+  .item .ex, .text > .ex { font-size: 17px; }
+  .game .ex { font-size: 16px; }
+  .game iframe { height: 520px; }
+  nav { font-size: 14px; padding: 0 6vw; gap: 8px; }
+}

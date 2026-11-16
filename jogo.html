@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Currículo Interativo 8-Bit — Vitor Mortara (Jogo Completo)</title>
+  <!-- Fonte retro pixelada estilo NES -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #11131a;
+      color: #ffffff;
+      font-family: 'Press Start 2P', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      padding: 12px;
+    }
+
+    .game-wrapper {
+      width: 100%;
+      max-width: 920px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hud-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      background: #000000;
+      border: 4px solid #ffffff;
+      padding: 10px 14px;
+      font-size: 10px;
+      line-height: 1.5;
+      box-shadow: 0 6px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    .hud-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hud-tag {
+      color: #fbd000;
+    }
+
+    .hud-meta {
+      color: #a8c6fa;
+      font-size: 9px;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .canvas-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background-color: #5C94FC;
+      border: 4px solid #ffffff;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* Controles táteis para dispositivos móveis / clique na tela */
+    .touch-controls {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      gap: 10px;
+    }
+
+    .dpad-group, .action-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .nes-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      background: #232734;
+      color: #ffffff;
+      border: 3px solid #ffffff;
+      padding: 12px 14px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #000000;
+      transition: transform 0.05s, background-color 0.1s;
+      touch-action: manipulation;
+    }
+
+    .nes-btn:active, .nes-btn.pressed {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #000000;
+      background: #3d445c;
+    }
+
+    .nes-btn.stage-btn {
+      font-size: 9px;
+      padding: 7px 9px;
+      border-width: 2px;
+      box-shadow: 0 3px 0 #000000;
+    }
+
+    .nes-btn.stage-btn.active-stage {
+      background: #fbd000;
+      color: #000000;
+      border-color: #ffffff;
+    }
+
+    .nes-btn.jump-btn {
+      background: #c83232;
+    }
+
+    .nes-btn.jump-btn:active, .nes-btn.jump-btn.pressed {
+      background: #9e2222;
+    }
+
+    .nes-btn.action-continue {
+      background: #1b8a2e;
+    }
+
+    .nes-btn.replay-btn {
+      background: #2e8b57;
+      font-size: 9px;
+      padding: 7px 10px;
+      border-width: 2px;
+      box-shadow: 0 3px 0 #000000;
+    }
+
+    .instructions {
+      font-size: 8px;
+      color: #b0b8d1;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 680px) {
+      .hud-header {
+        font-size: 8px;
+        padding: 8px 10px;
+      }
+      .hud-meta {
+        font-size: 8px;
+      }
+      .nes-btn {
+        padding: 12px 11px;
+        font-size: 10px;
+      }
+      .nes-btn.stage-btn, .nes-btn.replay-btn {
+        padding: 6px 8px;
+        font-size: 8px;
+      }
+      .instructions {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <!-- Barra superior estilo NES com seletor rápido de fases -->
+    <div class="hud-header">
+      <div class="hud-title-group">
+        <div><span id="hudStageTag" class="hud-tag">FASE 1</span> - <span id="hudStageTitle">FORMAÇÃO E COMEÇO DE CARREIRA</span></div>
+        <div id="hudStageMeta" class="hud-meta">SÃO PAULO • 2007—2015</div>
+      </div>
+      <div class="hud-controls">
+        <button id="btnStage1" class="nes-btn stage-btn active-stage" title="Ir para Fase 1">1</button>
+        <button id="btnStage2" class="nes-btn stage-btn" title="Ir para Fase 2">2</button>
+        <button id="btnStage3" class="nes-btn stage-btn" title="Ir para Fase 3">3</button>
+        <button id="btnReplayTop" class="nes-btn replay-btn" title="Reiniciar Fase Atual">↺ REINICIAR</button>
+      </div>
+    </div>
+
+    <!-- Tela do Jogo 8-Bit -->
+    <div class="canvas-frame">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <!-- Controles Táteis & Dica de Teclado -->
+    <div class="touch-controls">
+      <div class="dpad-group">
+        <button id="btnLeft" class="nes-btn" aria-label="Andar para a esquerda">◀ ESQ</button>
+        <button id="btnRight" class="nes-btn" aria-label="Andar para a direita">DIR ▶</button>
+      </div>
+      <div class="instructions">
+        [← / →] ANDAR • [ESPAÇO / ↑] PULAR • [ESPAÇO / ENTER / OK] AVANÇAR • [R] REINICIAR
+      </div>
+      <div class="action-group">
+        <button id="btnAction" class="nes-btn action-continue" aria-label="Avançar diálogo">OK</button>
+        <button id="btnJump" class="nes-btn jump-btn" aria-label="Pular">▲ PULAR</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * CURRÍCULO INTERATIVO 8-BIT — VITOR MORTARA (JOGO COMPLETO: FASES 1, 2 E 3)
+     * Arquitetura modular em arquivo único HTML5 Canvas (480x270, 16:9).
+     */
+    (function () {
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // Resolução interna estilo 8-bit widescreen (480x270)
+      const VIEW_W = 480;
+      const VIEW_H = 270;
+      canvas.width = VIEW_W;
+      canvas.height = VIEW_H;
+      ctx.imageSmoothingEnabled = false;
+
+      const GROUND_Y = 224;
+
+      // Elementos do HUD
+      const hudStageTag = document.getElementById('hudStageTag');
+      const hudStageTitle = document.getElementById('hudStageTitle');
+      const hudStageMeta = document.getElementById('hudStageMeta');
+      const stageBtns = {
+        1: document.getElementById('btnStage1'),
+        2: document.getElementById('btnStage2'),
+        3: document.getElementById('btnStage3')
+      };
+
+      // Metadados das 3 Fases
+      const STAGES_META = {
+        1: {
+          tag: 'FASE 1',
+          title: 'FORMAÇÃO E COMEÇO DE CARREIRA',
+          meta: 'SÃO PAULO • 2007—2015',
+          width: 2280
+        },
+        2: {
+          tag: 'FASE 2',
+          title: 'EMPREENDEDORISMO EM SÃO PAULO',
+          meta: 'SÃO PAULO • 2012—2016',
+          width: 2680
+        },
+        3: {
+          tag: 'FASE 3',
+          title: 'LISBOA',
+          meta: 'LISBOA • 2016—2027',
+          width: 3180
+        }
+      };
+
+      // Todos os diálogos das 3 fases
+      const DIALOGUES = {
+        // === FASE 1 ===
+        s1_fflch: {
+          title: "★ FFLCH - USP (2007)",
+          text: "Em 2007 ingressei no curso de Letras na Universidade de São Paulo, onde estudei língua portuguesa com foco em literatura."
+        },
+        s1_typewriter: {
+          title: "★ ESCRITA & GASTRONOMIA (2010—2012)",
+          text: "A faculdade não terminou como esperado e em 2015 abandonei o curso com duas matérias pendentes. Mas eu senti que já tinha as habilidades que eu precisava. Foi nessa época que a paixão pela comida começou a ditar minha carreira e, quando ainda cursava a faculdade, já escrevia colunas sobre comida e cultura para o finado site Gastronomia e Negócios."
+        },
+
+        // === FASE 2 ===
+        s2_intro: {
+          title: "★ EMPREENDEDORISMO EM SÃO PAULO (2012—2016)",
+          text: "A faculdade me ajudou a construir a rede de contactos que possibilitou as minhas primeiras empreitadas."
+        },
+        s2_coffee: {
+          title: "★ COZIMÂNTICA CAFÉ",
+          text: "Cozimântica foi o meu primeiro negócio, um pequeno café dentro de um centro cultural. Pareceu a forma perfeita para começar a ligação entre cultura e comida."
+        },
+        s2_bike: {
+          title: "★ LE SACOLÉ",
+          text: "O Le Sacolé foi o segundo empreendimento, com uma construção de marca forte, fez muito sucesso e rendeu algumas aparições na televisão. Mas o planejamento operacional (minha principal responsabilidade) não foi bem sucedido, não conseguimos responder à demanda e encerramos as atividades um ano depois."
+        },
+        s2_market: {
+          title: "★ INSTITUTO CHÃO",
+          text: "O Instituto Chão foi meu último trabalho em São Paulo. Entrei na associação quando o modelo de negócio estava definido e meu papel principal foi auxiliar na implementação da operação."
+        },
+
+        // === FASE 3 ===
+        s3_intro: {
+          title: "", // Sem título na caixa de diálogo
+          text: "Em 2016 cheguei em Lisboa, naquela época achei que seria o maior desafio da minha carreira, pois meu maior valor era minha rede de contactos em São Paulo."
+        },
+        s3_restaurant: {
+          title: "★ PRIMEIROS ANOS EM LISBOA (2017—2019)",
+          text: "Minha experiência prévia na área de alimentos e bebidas foi de grande valia e, afinal, não tive dificuldade em conseguir bons empregos em Lisboa. Contudo, não me sentia cem por cento satisfeito e sabia que era questão de tempo até voltar a empreender."
+        },
+        s3_pasta: {
+          title: "★ CAFÉ MORTARA (2019—2024)",
+          text: "Estávamos em operação há menos de um ano quando a pandemia de COVID mudou a rotina do mundo. Conseguimos nos adaptar rapidamente e com muito esforço sobrevivemos à pandemia, graças ao nosso tamanho enxuto. Com o negócio muito debilitado, tivemos que unir forças com outros pequenos empreendedores e iniciamos um coletivo que nos ajudou a continuar firmes por um tempo, mas nossa força coletiva também nos impedia de tomar decisões ágeis o suficiente para acompanhar as mudanças em Portugal e decidimos encerrar o coletivo."
+        },
+        s3_kitchen: {
+          title: "★ A VIDA NA COZINHA (2025—ATUAL)",
+          text: "Resolvi que precisava vivenciar mais o ambiente de cozinhas profissionais já estabelecidas, para conhecer processos e gestões diferentes da que eu usava na minha cozinha. Tem sido um período de aprendizado e aprimoramento. No último ano e meio venho sendo o responsável por uma cozinha em um brewpub, muito dinâmica e com vários desafios operacionais, tem me ajudado a entender a importância da comunicação com outros setores e aumentado muito minha capacidade de escuta."
+        },
+        s3_computer: {
+          title: "★ CARREGANDO...",
+          text: "Agora procuro um desafio novo no mundo digital. Quero levar os protocolos, organização e padrões da cozinha para outro ambiente. A IA é uma ferramenta que me possibilitou entender melhor esse universo e já faz parte da minha rotina, seja na cozinha ou na vida pessoal. Esse jogo foi feito pela IA; foi a melhor forma que encontrei para contar a minha trajetória."
+        }
+      };
+
+      // Constantes de Marcos por Fase
+      const S1 = {
+        TRANSITION_X: 560,
+        FFLCH_X: 1140,
+        FFLCH_W: 232,
+        TRIGGER_FFLCH_X: 1235,
+        HOLE_X: 1440,
+        HOLE_W: 154,
+        LANDING_X: 1665,
+        DESK_X: 1760,
+        TRIGGER_DESK_X: 1720,
+        FINISH_FLAG_X: 2120
+      };
+
+      const S2 = {
+        COFFEE_X: 520,
+        TRIGGER_COFFEE_X: 482,
+        BIKE_X: 1120,
+        TRIGGER_BIKE_X: 1075,
+        MARKET_X: 1720,
+        TRIGGER_MARKET_X: 1675,
+        AIRPORT_X: 2240,
+        TRIGGER_AIRPORT_X: 2295
+      };
+
+      const S3 = {
+        RESTAURANT_X: 500,
+        TRIGGER_RESTAURANT_X: 576,
+        PASTA_X: 1140,
+        TRIGGER_PASTA_X: 1100,
+        KITCHEN_X: 1720,
+        TRIGGER_KITCHEN_X: 1680,
+        COMPUTER_X: 2360,
+        TRIGGER_COMPUTER_X: 2320,
+        FINISH_FLAG_X: 2820
+      };
+
+      // Nuvens pixeladas
+      const clouds = [
+        { x: 55, y: 32, size: 1.0 },
+        { x: 255, y: 48, size: 1.15 },
+        { x: 470, y: 28, size: 0.9 },
+        { x: 700, y: 46, size: 1.1 },
+        { x: 940, y: 30, size: 1.2 },
+        { x: 1190, y: 48, size: 1.0 },
+        { x: 1450, y: 30, size: 1.15 },
+        { x: 1720, y: 48, size: 1.1 },
+        { x: 1990, y: 32, size: 0.95 },
+        { x: 2270, y: 44, size: 1.2 },
+        { x: 2540, y: 30, size: 1.0 },
+        { x: 2820, y: 46, size: 1.1 }
+      ];
+
+      // Árvores e arbustos da parte inicial da Fase 1
+      const s1Trees = [
+        { x: 145, type: 'tree' },
+        { x: 275, type: 'bush' },
+        { x: 405, type: 'tree' },
+        { x: 505, type: 'bush' }
+      ];
+
+      // Prédios altos de São Paulo (Fase 1 e Fase 2)
+      const spBuildingsS1 = [
+        { x: 610, w: 66, h: 118, color: '#6b7b9c', winColor: '#a8c6fa', rows: 7, cols: 3 },
+        { x: 690, w: 82, h: 154, color: '#566585', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 785, w: 62, h: 108, color: '#7888a8', winColor: '#bad3ff', rows: 6, cols: 3 },
+        { x: 860, w: 90, h: 166, color: '#4c5b7a', winColor: '#8eb0eb', rows: 10, cols: 4 },
+        { x: 965, w: 72, h: 130, color: '#637394', winColor: '#a8c6fa', rows: 8, cols: 3 },
+        { x: 1050, w: 86, h: 148, color: '#526180', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 1310, w: 74, h: 124, color: '#6b7b9c', winColor: '#bad3ff', rows: 7, cols: 3 },
+        { x: 1400, w: 88, h: 158, color: '#526180', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 1505, w: 68, h: 116, color: '#7888a8', winColor: '#a8c6fa', rows: 7, cols: 3 },
+        { x: 1590, w: 92, h: 164, color: '#4c5b7a', winColor: '#8eb0eb', rows: 10, cols: 4 },
+        { x: 1700, w: 76, h: 134, color: '#637394', winColor: '#bad3ff', rows: 8, cols: 3 },
+        { x: 1795, w: 84, h: 150, color: '#566585', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 1900, w: 70, h: 120, color: '#6b7b9c', winColor: '#a8c6fa', rows: 7, cols: 3 }
+      ];
+
+      const spBuildingsS2 = [
+        { x: 40, w: 66, h: 122, color: '#6b7b9c', winColor: '#a8c6fa', rows: 7, cols: 3 },
+        { x: 120, w: 84, h: 158, color: '#566585', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 218, w: 62, h: 108, color: '#7888a8', winColor: '#bad3ff', rows: 6, cols: 3 },
+        { x: 295, w: 90, h: 166, color: '#4c5b7a', winColor: '#8eb0eb', rows: 10, cols: 4 },
+        { x: 400, w: 72, h: 132, color: '#637394', winColor: '#a8c6fa', rows: 8, cols: 3 },
+        { x: 488, w: 86, h: 148, color: '#526180', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 590, w: 68, h: 116, color: '#7888a8', winColor: '#bad3ff', rows: 7, cols: 3 },
+        { x: 675, w: 92, h: 164, color: '#4c5b7a', winColor: '#8eb0eb', rows: 10, cols: 4 },
+        { x: 785, w: 74, h: 128, color: '#6b7b9c', winColor: '#a8c6fa', rows: 7, cols: 3 },
+        { x: 875, w: 88, h: 154, color: '#566585', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 980, w: 66, h: 114, color: '#7888a8', winColor: '#bad3ff', rows: 6, cols: 3 },
+        { x: 1065, w: 90, h: 162, color: '#526180', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 1170, w: 76, h: 136, color: '#637394', winColor: '#a8c6fa', rows: 8, cols: 3 },
+        { x: 1265, w: 84, h: 150, color: '#4c5b7a', winColor: '#8eb0eb', rows: 9, cols: 4 },
+        { x: 1365, w: 70, h: 120, color: '#6b7b9c', winColor: '#bad3ff', rows: 7, cols: 3 },
+        { x: 1455, w: 88, h: 160, color: '#566585', winColor: '#95b6f0', rows: 9, cols: 4 },
+        { x: 1560, w: 68, h: 118, color: '#7888a8', winColor: '#a8c6fa', rows: 7, cols: 3 },
+        { x: 1645, w: 82, h: 144, color: '#526180', winColor: '#95b6f0', rows: 8, cols: 4 },
+        { x: 1745, w: 72, h: 124, color: '#637394', winColor: '#bad3ff', rows: 7, cols: 3 }
+      ];
+
+      // Prédios históricos menores e mais antigos de Lisboa (Fase 3)
+      const lisbonBuildings = [
+        { x: 24, w: 76, h: 74, wall: '#e8c458', trim: '#c7a138', roof: '#b84a27', floors: 2, cols: 3, balcony: true, azulejo: false },
+        { x: 106, w: 68, h: 96, wall: '#dfa098', trim: '#b8766e', roof: '#a33d1e', floors: 3, cols: 2, balcony: true, azulejo: false },
+        { x: 180, w: 82, h: 64, wall: '#efeae1', trim: '#c9c2b6', roof: '#c4542f', floors: 2, cols: 3, balcony: false, azulejo: false },
+        { x: 268, w: 72, h: 104, wall: '#8eb6d9', trim: '#628bb0', roof: '#9e3819', floors: 3, cols: 3, balcony: true, azulejo: true },
+        { x: 346, w: 64, h: 78, wall: '#e6b86a', trim: '#bd8f44', roof: '#b84a27', floors: 2, cols: 2, balcony: false, azulejo: false },
+        { x: 416, w: 80, h: 92, wall: '#f2ece1', trim: '#c7bfb2', roof: '#a84120', floors: 3, cols: 3, balcony: true, azulejo: false },
+        { x: 504, w: 70, h: 68, wall: '#d98f86', trim: '#b3685f', roof: '#bd4f2b', floors: 2, cols: 2, balcony: false, azulejo: false },
+        { x: 580, w: 86, h: 102, wall: '#ebd075', trim: '#c2a64c', roof: '#9e3819', floors: 3, cols: 3, balcony: true, azulejo: false },
+        { x: 672, w: 66, h: 76, wall: '#7fa8cc', trim: '#567fa3', roof: '#b84a27', floors: 2, cols: 2, balcony: true, azulejo: true },
+        { x: 744, w: 78, h: 94, wall: '#efeae1', trim: '#c9c2b6', roof: '#a33d1e', floors: 3, cols: 3, balcony: false, azulejo: false },
+        { x: 828, w: 72, h: 66, wall: '#e3a89d', trim: '#ba7e73', roof: '#c4542f', floors: 2, cols: 3, balcony: true, azulejo: false },
+        { x: 906, w: 84, h: 106, wall: '#e8c458', trim: '#c7a138', roof: '#9e3819', floors: 3, cols: 3, balcony: true, azulejo: false },
+        { x: 996, w: 68, h: 74, wall: '#f2ece1', trim: '#c7bfb2', roof: '#b84a27', floors: 2, cols: 2, balcony: false, azulejo: false },
+        { x: 1070, w: 80, h: 90, wall: '#8eb6d9', trim: '#628bb0', roof: '#a84120', floors: 3, cols: 3, balcony: true, azulejo: true },
+        { x: 1156, w: 70, h: 68, wall: '#e6b86a', trim: '#bd8f44', roof: '#bd4f2b', floors: 2, cols: 2, balcony: false, azulejo: false },
+        { x: 1232, w: 86, h: 100, wall: '#dfa098', trim: '#b8766e', roof: '#9e3819', floors: 3, cols: 3, balcony: true, azulejo: false },
+        { x: 1324, w: 74, h: 76, wall: '#efeae1', trim: '#c9c2b6', roof: '#b84a27', floors: 2, cols: 3, balcony: true, azulejo: false },
+        { x: 1404, w: 78, h: 94, wall: '#ebd075', trim: '#c2a64c', roof: '#a33d1e', floors: 3, cols: 3, balcony: false, azulejo: false },
+        { x: 1488, w: 68, h: 66, wall: '#7fa8cc', trim: '#567fa3', roof: '#c4542f', floors: 2, cols: 2, balcony: true, azulejo: true },
+        { x: 1562, w: 84, h: 102, wall: '#f2ece1', trim: '#c7bfb2', roof: '#9e3819', floors: 3, cols: 3, balcony: true, azulejo: false },
+        { x: 1652, w: 72, h: 76, wall: '#d98f86', trim: '#b3685f', roof: '#b84a27', floors: 2, cols: 2, balcony: false, azulejo: false },
+        { x: 1730, w: 80, h: 92, wall: '#e8c458', trim: '#c7a138', roof: '#a84120', floors: 3, cols: 3, balcony: true, azulejo: false },
+        { x: 1816, w: 70, h: 70, wall: '#efeae1', trim: '#c9c2b6', roof: '#bd4f2b', floors: 2, cols: 2, balcony: true, azulejo: false },
+        { x: 1892, w: 82, h: 98, wall: '#8eb6d9', trim: '#628bb0', roof: '#9e3819', floors: 3, cols: 3, balcony: true, azulejo: true },
+        { x: 1980, w: 74, h: 74, wall: '#e6b86a', trim: '#bd8f44', roof: '#b84a27', floors: 2, cols: 3, balcony: false, azulejo: false },
+        { x: 2060, w: 78, h: 90, wall: '#dfa098', trim: '#b8766e', roof: '#a33d1e', floors: 3, cols: 3, balcony: true, azulejo: false }
+      ];
+
+      // Estado geral do jogo unificado
+      const state = {
+        currentStage: 1,
+        cameraX: 0,
+        frame: 0,
+        activeDialogueKey: null,
+        triggered: {},
+        stageCompleted: false,
+        typedChars: 0,
+        typeTimer: 0,
+        keys: {
+          left: false,
+          right: false,
+          jump: false
+        },
+        player: {
+          x: 64,
+          y: GROUND_Y - 36,
+          w: 24,
+          h: 36,
+          vx: 0,
+          vy: 0,
+          speed: 2.2,
+          jumpForce: -6.5,
+          gravity: 0.34,
+          onGround: true,
+          falling: false,
+          facing: 1,
+          walkTimer: 0,
+          walkFrame: 0,
+          lookingUp: false
+        }
+      };
+
+      /**
+       * Carrega uma fase específica (1, 2 ou 3) e atualiza HUD, marcos e estado do personagem
+       */
+      function loadStage(stageNum) {
+        state.currentStage = stageNum;
+        state.cameraX = 0;
+        state.stageCompleted = false;
+        state.typedChars = 0;
+        state.typeTimer = 0;
+
+        // Atualiza HUD superior e botões de fase ativa
+        const meta = STAGES_META[stageNum];
+        hudStageTag.textContent = meta.tag;
+        hudStageTitle.textContent = meta.title;
+        hudStageMeta.textContent = meta.meta;
+
+        [1, 2, 3].forEach((n) => {
+          if (n === stageNum) {
+            stageBtns[n].classList.add('active-stage');
+          } else {
+            stageBtns[n].classList.remove('active-stage');
+          }
+        });
+
+        // Reset do jogador
+        const p = state.player;
+        p.x = 64;
+        p.y = GROUND_Y - p.h;
+        p.vx = 0;
+        p.vy = 0;
+        p.onGround = true;
+        p.falling = false;
+        p.facing = 1;
+        p.walkFrame = 0;
+        p.walkTimer = 0;
+        p.lookingUp = false;
+
+        // Configuração inicial de gatilhos por fase
+        if (stageNum === 1) {
+          state.activeDialogueKey = null;
+          state.triggered = {
+            s1_fflch: false,
+            s1_typewriter: false
+          };
+        } else if (stageNum === 2) {
+          state.activeDialogueKey = 's2_intro';
+          state.triggered = {
+            s2_intro: true,
+            s2_coffee: false,
+            s2_bike: false,
+            s2_market: false
+          };
+        } else if (stageNum === 3) {
+          state.activeDialogueKey = 's3_intro';
+          state.triggered = {
+            s3_intro: true,
+            s3_restaurant: false,
+            s3_pasta: false,
+            s3_kitchen: false,
+            s3_computer: false
+          };
+        }
+      }
+
+      /**
+       * Avança diálogos ou transiciona entre fases quando concluídas
+       */
+      function handleDialogueAdvance() {
+        if (state.activeDialogueKey) {
+          const currentText = DIALOGUES[state.activeDialogueKey].text;
+          if (state.typedChars < currentText.length) {
+            state.typedChars = currentText.length;
+          } else {
+            state.activeDialogueKey = null;
+            state.player.lookingUp = false;
+          }
+          return;
+        }
+
+        if (state.stageCompleted) {
+          if (state.currentStage === 1) {
+            loadStage(2);
+          } else if (state.currentStage === 2) {
+            loadStage(3);
+          } else {
+            // Fim da Fase 3 -> Reinicia toda a jornada desde a Fase 1
+            loadStage(1);
+          }
+        }
+      }
+
+      /**
+       * Eventos de Teclado
+       */
+      window.addEventListener('keydown', (e) => {
+        const code = e.code;
+
+        if (code === 'ArrowLeft' || code === 'KeyA') {
+          state.keys.left = true;
+        }
+        if (code === 'ArrowRight' || code === 'KeyD') {
+          state.keys.right = true;
+        }
+
+        if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') {
+          e.preventDefault();
+          if (state.activeDialogueKey || state.stageCompleted) {
+            handleDialogueAdvance();
+          } else {
+            state.keys.jump = true;
+          }
+        }
+
+        if (code === 'Enter') {
+          e.preventDefault();
+          if (state.activeDialogueKey || state.stageCompleted) {
+            handleDialogueAdvance();
+          }
+        }
+
+        if (code === 'KeyR') {
+          loadStage(state.currentStage);
+        }
+
+        if (code === 'Digit1') loadStage(1);
+        if (code === 'Digit2') loadStage(2);
+        if (code === 'Digit3') loadStage(3);
+      });
+
+      window.addEventListener('keyup', (e) => {
+        const code = e.code;
+        if (code === 'ArrowLeft' || code === 'KeyA') state.keys.left = false;
+        if (code === 'ArrowRight' || code === 'KeyD') state.keys.right = false;
+        if (code === 'Space' || code === 'ArrowUp' || code === 'KeyW') state.keys.jump = false;
+      });
+
+      /**
+       * Eventos dos Botões Virtuais e do HUD
+       */
+      function bindHoldButton(btnId, keyName) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        const press = (e) => {
+          e.preventDefault();
+          if ((state.activeDialogueKey || state.stageCompleted) && keyName === 'jump') {
+            handleDialogueAdvance();
+            return;
+          }
+          state.keys[keyName] = true;
+          btn.classList.add('pressed');
+        };
+        const release = (e) => {
+          e.preventDefault();
+          state.keys[keyName] = false;
+          btn.classList.remove('pressed');
+        };
+        btn.addEventListener('mousedown', press);
+        btn.addEventListener('mouseup', release);
+        btn.addEventListener('mouseleave', release);
+        btn.addEventListener('touchstart', press, { passive: false });
+        btn.addEventListener('touchend', release, { passive: false });
+        btn.addEventListener('touchcancel', release, { passive: false });
+      }
+
+      bindHoldButton('btnLeft', 'left');
+      bindHoldButton('btnRight', 'right');
+      bindHoldButton('btnJump', 'jump');
+
+      document.getElementById('btnAction').addEventListener('click', (e) => {
+        e.preventDefault();
+        handleDialogueAdvance();
+      });
+
+      document.getElementById('btnReplayTop').addEventListener('click', () => loadStage(state.currentStage));
+      stageBtns[1].addEventListener('click', () => loadStage(1));
+      stageBtns[2].addEventListener('click', () => loadStage(2));
+      stageBtns[3].addEventListener('click', () => loadStage(3));
+
+      canvas.addEventListener('click', () => {
+        if (state.activeDialogueKey || state.stageCompleted) {
+          handleDialogueAdvance();
+        }
+      });
+
+      /**
+       * Atualização da Física, Marcos e Animação
+       */
+      function update() {
+        state.frame++;
+        const p = state.player;
+        const stage = state.currentStage;
+        const levelW = STAGES_META[stage].width;
+
+        if (!state.activeDialogueKey && !state.stageCompleted) {
+          // Movimento horizontal
+          if (p.falling) {
+            p.vx = 0;
+          } else if (state.keys.left && !state.keys.right) {
+            p.vx = -p.speed;
+            p.facing = -1;
+          } else if (state.keys.right && !state.keys.left) {
+            p.vx = p.speed;
+            p.facing = 1;
+          } else {
+            p.vx = 0;
+          }
+
+          // Pulo
+          if (state.keys.jump && p.onGround && !p.falling) {
+            p.vy = p.jumpForce;
+            p.onGround = false;
+          }
+
+          // Gravidade e posição
+          p.vy += p.gravity;
+          p.x += p.vx;
+          p.y += p.vy;
+
+          // Limites laterais
+          if (p.x < 16) p.x = 16;
+          if (p.x > levelW - p.w - 24) p.x = levelW - p.w - 24;
+
+          // Colisão com o chão (com buraco apenas na Fase 1)
+          const centerX = p.x + p.w / 2;
+          const overHole = stage === 1 && centerX > S1.HOLE_X && centerX < S1.HOLE_X + S1.HOLE_W;
+
+          if (p.y + p.h >= GROUND_Y) {
+            if (overHole || p.falling) {
+              p.falling = true;
+              p.onGround = false;
+            } else {
+              p.y = GROUND_Y - p.h;
+              p.vy = 0;
+              p.onGround = true;
+            }
+          } else if (overHole && p.onGround) {
+            p.onGround = false;
+          }
+
+          // Recuperação da queda na Fase 1
+          if (stage === 1 && p.falling && p.y > VIEW_H + 30) {
+            p.falling = false;
+            p.x = S1.LANDING_X;
+            p.y = -90;
+            p.vy = 0;
+            p.vx = 0;
+            p.facing = 1;
+            p.lookingUp = false;
+          }
+
+          // Ciclo de animação das pernas (4 frames)
+          if (!p.onGround) {
+            p.walkFrame = 1;
+          } else if (Math.abs(p.vx) > 0.1) {
+            p.walkTimer += 0.9;
+            if (p.walkTimer >= 6) {
+              p.walkTimer = 0;
+              p.walkFrame = (p.walkFrame + 1) % 4;
+            }
+          } else {
+            p.walkFrame = 0;
+            p.walkTimer = 0;
+          }
+
+          // Gatilhos específicos de cada fase
+          if (stage === 1) {
+            if (!state.triggered.s1_fflch && p.x >= S1.TRIGGER_FFLCH_X && p.onGround) {
+              p.x = S1.TRIGGER_FFLCH_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              p.lookingUp = true;
+              state.triggered.s1_fflch = true;
+              openDialogue('s1_fflch');
+            }
+            if (!state.triggered.s1_typewriter && p.x >= S1.TRIGGER_DESK_X && p.onGround) {
+              p.x = S1.TRIGGER_DESK_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              p.lookingUp = false;
+              state.triggered.s1_typewriter = true;
+              openDialogue('s1_typewriter');
+            }
+            if (state.triggered.s1_typewriter && !state.stageCompleted && p.x >= S1.FINISH_FLAG_X && p.onGround) {
+              p.x = S1.FINISH_FLAG_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              state.stageCompleted = true;
+            }
+          } else if (stage === 2) {
+            if (!state.triggered.s2_coffee && p.x >= S2.TRIGGER_COFFEE_X && p.onGround) {
+              p.x = S2.TRIGGER_COFFEE_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              state.triggered.s2_coffee = true;
+              openDialogue('s2_coffee');
+            }
+            if (!state.triggered.s2_bike && p.x >= S2.TRIGGER_BIKE_X && p.onGround) {
+              p.x = S2.TRIGGER_BIKE_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              state.triggered.s2_bike = true;
+              openDialogue('s2_bike');
+            }
+            if (!state.triggered.s2_market && p.x >= S2.TRIGGER_MARKET_X && p.onGround) {
+              p.x = S2.TRIGGER_MARKET_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              state.triggered.s2_market = true;
+              openDialogue('s2_market');
+            }
+            if (state.triggered.s2_market && !state.stageCompleted && p.x >= S2.TRIGGER_AIRPORT_X && p.onGround) {
+              p.x = S2.TRIGGER_AIRPORT_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              state.stageCompleted = true;
+            }
+          } else if (stage === 3) {
+            if (!state.triggered.s3_restaurant && p.x >= S3.TRIGGER_RESTAURANT_X && p.onGround) {
+              p.x = S3.TRIGGER_RESTAURANT_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              state.triggered.s3_restaurant = true;
+              openDialogue('s3_restaurant');
+            }
+            if (!state.triggered.s3_pasta && p.x >= S3.TRIGGER_PASTA_X && p.onGround) {
+              p.x = S3.TRIGGER_PASTA_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              state.triggered.s3_pasta = true;
+              openDialogue('s3_pasta');
+            }
+            if (!state.triggered.s3_kitchen && p.x >= S3.TRIGGER_KITCHEN_X && p.onGround) {
+              p.x = S3.TRIGGER_KITCHEN_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              state.triggered.s3_kitchen = true;
+              openDialogue('s3_kitchen');
+            }
+            if (!state.triggered.s3_computer && p.x >= S3.TRIGGER_COMPUTER_X && p.onGround) {
+              p.x = S3.TRIGGER_COMPUTER_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              p.facing = 1;
+              state.triggered.s3_computer = true;
+              openDialogue('s3_computer');
+            }
+            if (state.triggered.s3_computer && !state.stageCompleted && p.x >= S3.FINISH_FLAG_X && p.onGround) {
+              p.x = S3.FINISH_FLAG_X;
+              p.vx = 0;
+              p.walkFrame = 0;
+              state.stageCompleted = true;
+            }
+          }
+        } else if (state.activeDialogueKey) {
+          // Efeito máquina de escrever
+          const fullText = DIALOGUES[state.activeDialogueKey].text;
+          if (state.typedChars < fullText.length) {
+            state.typeTimer++;
+            if (state.typeTimer >= 1) {
+              state.typeTimer = 0;
+              state.typedChars += 3;
+              if (state.typedChars > fullText.length) {
+                state.typedChars = fullText.length;
+              }
+            }
+          }
+        }
+
+        // Câmera suave acompanhando o jogador
+        const targetCamX = p.x - VIEW_W * 0.30;
+        state.cameraX += (targetCamX - state.cameraX) * 0.14;
+        if (state.cameraX < 0) state.cameraX = 0;
+        if (state.cameraX > levelW - VIEW_W) state.cameraX = levelW - VIEW_W;
+      }
+
+      function openDialogue(key) {
+        state.activeDialogueKey = key;
+        state.typedChars = 0;
+        state.typeTimer = 0;
+      }
+
+      /* =====================================================================
+       * FUNÇÕES DE DESENHO COMPARTILHADAS E POR FASE
+       * ===================================================================== */
+
+      function drawCloud(x, y, scale) {
+        const s = Math.round(4 * scale);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x + s * 2, y, s * 6, s * 2);
+        ctx.fillRect(x + s, y + s, s * 8, s * 2);
+        ctx.fillRect(x, y + s * 2, s * 10, s * 2);
+        ctx.fillStyle = '#cbe0ff';
+        ctx.fillRect(x + s, y + s * 3, s * 8, s);
+      }
+
+      function drawSPBuildings(buildingsList, camX, offsetX) {
+        buildingsList.forEach((b) => {
+          const screenX = Math.round(b.x - camX * 0.65 + offsetX);
+          if (screenX + b.w < -40 || screenX > VIEW_W + 40) return;
+
+          const topY = GROUND_Y - b.h;
+          ctx.fillStyle = b.color;
+          ctx.fillRect(screenX, topY, b.w, b.h);
+
+          ctx.fillStyle = '#3b4761';
+          ctx.fillRect(screenX + b.w - 6, topY, 6, b.h);
+          ctx.fillRect(screenX - 2, topY - 4, b.w + 4, 4);
+
+          ctx.fillStyle = b.winColor;
+          const padX = 10;
+          const padY = 12;
+          const gapX = Math.floor((b.w - padX * 2) / b.cols);
+          const gapY = Math.floor((b.h - padY * 2) / b.rows);
+
+          for (let r = 0; r < b.rows; r++) {
+            for (let c = 0; c < b.cols; c++) {
+              ctx.fillRect(screenX + padX + c * gapX, topY + padY + r * gapY, 6, 8);
+            }
+          }
+        });
+      }
+
+      function drawLisbonBuildings(camX) {
+        lisbonBuildings.forEach((b) => {
+          const screenX = Math.round(b.x - camX * 0.65);
+          if (screenX + b.w < -40 || screenX > VIEW_W + 40) return;
+
+          const topY = GROUND_Y - b.h;
+
+          // Telhado de telha terracota
+          ctx.fillStyle = b.roof;
+          ctx.fillRect(screenX - 2, topY - 8, b.w + 4, 8);
+          ctx.fillRect(screenX + 2, topY - 12, b.w - 4, 4);
+          ctx.fillStyle = '#75250e';
+          for (let tx = screenX; tx < screenX + b.w - 2; tx += 6) {
+            ctx.fillRect(tx, topY - 6, 2, 5);
+          }
+
+          // Chaminé típica
+          ctx.fillStyle = '#efeae1';
+          ctx.fillRect(screenX + 10, topY - 20, 8, 8);
+          ctx.fillStyle = b.roof;
+          ctx.fillRect(screenX + 8, topY - 22, 12, 2);
+
+          // Fachada pastel
+          ctx.fillStyle = b.wall;
+          ctx.fillRect(screenX, topY, b.w, b.h);
+
+          ctx.fillStyle = b.trim;
+          ctx.fillRect(screenX + b.w - 5, topY, 5, b.h);
+          ctx.fillRect(screenX - 2, topY, b.w + 4, 3);
+
+          // Azulejos tradicionais
+          if (b.azulejo) {
+            ctx.fillStyle = '#d9ecff';
+            for (let ay = topY + 6; ay < GROUND_Y - 6; ay += 8) {
+              for (let ax = screenX + 4; ax < screenX + b.w - 8; ax += 8) {
+                ctx.fillRect(ax, ay, 2, 2);
+              }
+            }
+          }
+
+          // Janelas altas e varandas de ferro
+          const padX = 11;
+          const padY = 12;
+          const gapX = Math.floor((b.w - padX * 2) / b.cols);
+          const gapY = Math.floor((b.h - padY - 14) / b.floors);
+
+          for (let r = 0; r < b.floors; r++) {
+            for (let c = 0; c < b.cols; c++) {
+              const wx = screenX + padX + c * gapX;
+              const wy = topY + padY + r * gapY;
+
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(wx - 1, wy - 1, 10, 15);
+              ctx.fillStyle = '#3b5978';
+              ctx.fillRect(wx, wy, 8, 13);
+              ctx.fillStyle = '#7ea6cc';
+              ctx.fillRect(wx + 1, wy + 1, 2, 11);
+
+              if (b.balcony) {
+                ctx.fillStyle = '#252a34';
+                ctx.fillRect(wx - 3, wy + 10, 14, 1);
+                ctx.fillRect(wx - 3, wy + 14, 14, 2);
+                for (let bx = wx - 2; bx <= wx + 9; bx += 3) {
+                  ctx.fillRect(bx, wy + 10, 1, 4);
+                }
+              }
+            }
+          }
+
+          const doorX = screenX + Math.floor(b.w / 2) - 5;
+          ctx.fillStyle = '#5c3419';
+          ctx.fillRect(doorX, GROUND_Y - 16, 10, 16);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(doorX - 1, GROUND_Y - 17, 12, 1);
+        });
+      }
+
+      function drawGround(camX) {
+        const stage = state.currentStage;
+        const tileSize = 16;
+        const startCol = Math.floor(camX / tileSize);
+        const endCol = startCol + Math.ceil(VIEW_W / tileSize) + 2;
+
+        for (let col = startCol; col <= endCol; col++) {
+          const worldX = col * tileSize;
+          const screenX = Math.round(worldX - camX);
+          const groundH = VIEW_H - GROUND_Y;
+
+          if (stage === 1 && worldX < S1.TRANSITION_X) {
+            // Grama (início Fase 1)
+            ctx.fillStyle = '#c84c0c';
+            ctx.fillRect(screenX, GROUND_Y + 6, tileSize, groundH - 6);
+            ctx.fillStyle = '#802800';
+            ctx.fillRect(screenX + 2, GROUND_Y + 12, 4, 4);
+            ctx.fillRect(screenX + 10, GROUND_Y + 24, 4, 4);
+            ctx.fillRect(screenX + 4, GROUND_Y + 34, 6, 4);
+
+            ctx.fillStyle = '#00a800';
+            ctx.fillRect(screenX, GROUND_Y, tileSize, 6);
+            ctx.fillStyle = '#80d010';
+            ctx.fillRect(screenX, GROUND_Y, tileSize, 2);
+            ctx.fillStyle = '#005800';
+            ctx.fillRect(screenX + (col % 2) * 4, GROUND_Y + 6, 8, 2);
+          } else if (stage === 3) {
+            // Calçada portuguesa / pedra clara (Fase 3)
+            ctx.fillStyle = '#9aa1ad';
+            ctx.fillRect(screenX, GROUND_Y + 6, tileSize, groundH - 6);
+            ctx.fillStyle = '#d6dce6';
+            ctx.fillRect(screenX, GROUND_Y, tileSize, 6);
+            ctx.fillStyle = '#eef2f7';
+            ctx.fillRect(screenX, GROUND_Y, tileSize, 2);
+            ctx.fillStyle = '#68707d';
+            if (col % 2 === 0) ctx.fillRect(screenX, GROUND_Y, 2, groundH);
+            ctx.fillRect(screenX + 4, GROUND_Y + 3, 2, 2);
+            ctx.fillRect(screenX + 11, GROUND_Y + 3, 2, 2);
+            ctx.fillRect(screenX + 3, GROUND_Y + 13, 4, 3);
+            ctx.fillRect(screenX + 10, GROUND_Y + 19, 4, 3);
+            ctx.fillRect(screenX + 5, GROUND_Y + 29, 5, 3);
+          } else {
+            // Cimento urbano (Fase 1 após transição e toda a Fase 2)
+            ctx.fillStyle = '#8c929e';
+            ctx.fillRect(screenX, GROUND_Y + 6, tileSize, groundH - 6);
+            ctx.fillStyle = '#bcc2ce';
+            ctx.fillRect(screenX, GROUND_Y, tileSize, 6);
+            ctx.fillStyle = '#dfe4ee';
+            ctx.fillRect(screenX, GROUND_Y, tileSize, 2);
+            ctx.fillStyle = '#5a606b';
+            if (col % 2 === 0) ctx.fillRect(screenX, GROUND_Y, 2, groundH);
+            ctx.fillRect(screenX + 6, GROUND_Y + 16, 3, 2);
+            ctx.fillRect(screenX + 11, GROUND_Y + 30, 3, 2);
+          }
+        }
+
+        // Buraco e linha de transição na Fase 1
+        if (stage === 1) {
+          const holeScreenX = Math.round(S1.HOLE_X - camX);
+          if (holeScreenX + S1.HOLE_W > 0 && holeScreenX < VIEW_W) {
+            ctx.fillStyle = '#07080d';
+            ctx.fillRect(holeScreenX, GROUND_Y, S1.HOLE_W, VIEW_H - GROUND_Y);
+            ctx.fillStyle = '#3a3f4a';
+            ctx.fillRect(holeScreenX, GROUND_Y, 4, VIEW_H - GROUND_Y);
+            ctx.fillRect(holeScreenX + S1.HOLE_W - 4, GROUND_Y, 4, VIEW_H - GROUND_Y);
+          }
+
+          const transScreenX = Math.round(S1.TRANSITION_X - camX);
+          if (transScreenX >= -20 && transScreenX <= VIEW_W + 20) {
+            ctx.fillStyle = '#4e545e';
+            ctx.fillRect(transScreenX - 2, GROUND_Y - 2, 4, VIEW_H - GROUND_Y + 2);
+          }
+        }
+      }
+
+      /* --- OBJETOS ESPECÍFICOS DA FASE 1 --- */
+
+      function drawS1Foliage(item, screenX) {
+        if (item.type === 'tree') {
+          ctx.fillStyle = '#7c4722';
+          ctx.fillRect(screenX + 18, GROUND_Y - 36, 12, 36);
+          ctx.fillStyle = '#573014';
+          ctx.fillRect(screenX + 26, GROUND_Y - 36, 4, 36);
+
+          ctx.fillStyle = '#1b8a2e';
+          ctx.fillRect(screenX + 4, GROUND_Y - 68, 40, 34);
+          ctx.fillRect(screenX + 10, GROUND_Y - 78, 28, 12);
+          ctx.fillStyle = '#43c43b';
+          ctx.fillRect(screenX + 8, GROUND_Y - 66, 28, 18);
+          ctx.fillRect(screenX + 14, GROUND_Y - 74, 16, 10);
+        } else {
+          ctx.fillStyle = '#1b8a2e';
+          ctx.fillRect(screenX, GROUND_Y - 16, 44, 16);
+          ctx.fillRect(screenX + 6, GROUND_Y - 24, 32, 10);
+          ctx.fillStyle = '#43c43b';
+          ctx.fillRect(screenX + 4, GROUND_Y - 14, 32, 8);
+          ctx.fillRect(screenX + 10, GROUND_Y - 20, 20, 6);
+        }
+      }
+
+      function drawS1FFLCH(camX) {
+        const bx = Math.round(S1.FFLCH_X - camX);
+        if (bx > VIEW_W + 50 || bx + S1.FFLCH_W < -50) return;
+
+        const bw = S1.FFLCH_W;
+        const bh = 162;
+        const by = GROUND_Y - bh;
+
+        ctx.fillStyle = '#d9cfc1';
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.fillStyle = '#b5a898';
+        ctx.fillRect(bx + bw - 14, by, 14, bh);
+        ctx.fillStyle = '#6e6a66';
+        ctx.fillRect(bx - 4, GROUND_Y - 14, bw + 8, 14);
+        ctx.fillStyle = '#8c3b2b';
+        ctx.fillRect(bx - 6, by - 10, bw + 12, 10);
+        ctx.fillStyle = '#5e2318';
+        ctx.fillRect(bx - 6, by - 2, bw + 12, 2);
+
+        const signW = 108;
+        const signH = 24;
+        const signX = bx + Math.floor((bw - signW) / 2);
+        const signY = by + 10;
+
+        ctx.fillStyle = '#24344d';
+        ctx.fillRect(signX, signY, signW, signH);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(signX + 1, signY + 1, signW - 2, signH - 2);
+
+        ctx.fillStyle = '#fbd000';
+        ctx.font = '13px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('FFLCH', signX + signW / 2 + 1, signY + signH / 2 + 1);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '6px "Press Start 2P", monospace';
+        ctx.fillText('LETRAS • USP', signX + signW / 2, signY + signH + 8);
+
+        const winCols = [bx + 18, bx + 46, bx + 164, bx + 192];
+        const winRows = [by + 46, by + 82, by + 116];
+
+        winRows.forEach((wy) => {
+          winCols.forEach((wx) => {
+            ctx.fillStyle = '#5c5349';
+            ctx.fillRect(wx - 2, wy - 2, 22, 24);
+            ctx.fillStyle = '#3b6ea5';
+            ctx.fillRect(wx, wy, 18, 20);
+            ctx.fillStyle = '#7fb2eb';
+            ctx.fillRect(wx + 2, wy + 2, 5, 14);
+            ctx.fillStyle = '#d9cfc1';
+            ctx.fillRect(wx + 8, wy, 2, 20);
+            ctx.fillRect(wx, wy + 9, 18, 2);
+          });
+        });
+
+        const doorW = 52;
+        const doorH = 54;
+        const doorX = bx + Math.floor((bw - doorW) / 2);
+        const doorY = GROUND_Y - doorH - 6;
+
+        ctx.fillStyle = '#ebe3d8';
+        ctx.fillRect(doorX - 10, doorY - 8, 10, doorH + 8);
+        ctx.fillRect(doorX + doorW, doorY - 8, 10, doorH + 8);
+        ctx.fillRect(doorX - 12, doorY - 12, doorW + 24, 8);
+
+        ctx.fillStyle = '#4a2c18';
+        ctx.fillRect(doorX, doorY, doorW, doorH);
+        ctx.fillStyle = '#2b180c';
+        ctx.fillRect(doorX + doorW / 2 - 1, doorY, 2, doorH);
+        ctx.fillStyle = '#5d92c9';
+        ctx.fillRect(doorX + 5, doorY + 6, 16, 20);
+        ctx.fillRect(doorX + 31, doorY + 6, 16, 20);
+
+        ctx.fillStyle = '#a69e94';
+        ctx.fillRect(doorX - 14, GROUND_Y - 6, doorW + 28, 3);
+        ctx.fillStyle = '#8c847a';
+        ctx.fillRect(doorX - 18, GROUND_Y - 3, doorW + 36, 3);
+      }
+
+      function drawS1WritingDesk(camX) {
+        const dx = Math.round(S1.DESK_X - camX);
+        if (dx > VIEW_W + 60 || dx + 100 < -60) return;
+
+        // Cadeira
+        ctx.fillStyle = '#6b3e1e';
+        ctx.fillRect(dx, GROUND_Y - 32, 4, 32);
+        ctx.fillStyle = '#8c5228';
+        ctx.fillRect(dx + 1, GROUND_Y - 31, 2, 16);
+        ctx.fillRect(dx, GROUND_Y - 15, 16, 4);
+        ctx.fillStyle = '#542f15';
+        ctx.fillRect(dx + 12, GROUND_Y - 11, 3, 11);
+
+        // Mesa
+        const tableX = dx + 18;
+        const tableW = 54;
+        const tableTopY = GROUND_Y - 24;
+
+        ctx.fillStyle = '#542f15';
+        ctx.fillRect(tableX + 4, tableTopY + 4, 5, 20);
+        ctx.fillRect(tableX + tableW - 9, tableTopY + 4, 5, 20);
+        ctx.fillStyle = '#6b3e1e';
+        ctx.fillRect(tableX + 4, tableTopY + 4, tableW - 8, 4);
+        ctx.fillStyle = '#9e5e2e';
+        ctx.fillRect(tableX, tableTopY, tableW, 4);
+        ctx.fillStyle = '#bd753e';
+        ctx.fillRect(tableX, tableTopY, tableW, 2);
+
+        // Máquina de escrever
+        const twX = tableX + 12;
+        const twY = tableTopY - 14;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(twX + 6, twY - 8, 14, 10);
+        ctx.fillStyle = '#333b4d';
+        ctx.fillRect(twX + 8, twY - 6, 10, 1);
+        ctx.fillRect(twX + 8, twY - 4, 8, 1);
+        ctx.fillRect(twX + 8, twY - 2, 9, 1);
+
+        ctx.fillStyle = '#1c1e24';
+        ctx.fillRect(twX + 1, twY, 24, 3);
+        ctx.fillStyle = '#7c8494';
+        ctx.fillRect(twX - 1, twY + 1, 2, 2);
+        ctx.fillRect(twX + 25, twY + 1, 2, 2);
+
+        ctx.fillStyle = '#3b4a42';
+        ctx.fillRect(twX + 3, twY + 3, 20, 8);
+        ctx.fillStyle = '#53695d';
+        ctx.fillRect(twX + 4, twY + 4, 18, 4);
+
+        ctx.fillStyle = '#232b27';
+        ctx.fillRect(twX + 2, twY + 11, 22, 3);
+        ctx.fillStyle = '#dfe6ed';
+        for (let kx = 4; kx <= 20; kx += 4) {
+          ctx.fillRect(twX + kx, twY + 9, 2, 2);
+        }
+
+        // Livros
+        const booksX = tableX + 40;
+        ctx.fillStyle = '#b83228';
+        ctx.fillRect(booksX, tableTopY - 3, 11, 3);
+        ctx.fillStyle = '#2858a8';
+        ctx.fillRect(booksX + 1, tableTopY - 6, 10, 3);
+      }
+
+      /* --- OBJETOS ESPECÍFICOS DA FASE 2 --- */
+
+      function drawS2CoffeeCounter(camX) {
+        const cx = Math.round(S2.COFFEE_X - camX);
+        if (cx > VIEW_W + 60 || cx + 110 < -60) return;
+
+        ctx.fillStyle = '#4a2e1b';
+        ctx.fillRect(cx + 4, GROUND_Y - 76, 4, 76);
+        ctx.fillRect(cx + 88, GROUND_Y - 76, 4, 76);
+
+        const awningY = GROUND_Y - 84;
+        for (let i = 0; i < 6; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#8c2d19' : '#f5ebd6';
+          ctx.fillRect(cx + i * 16, awningY, 16, 10);
+          ctx.fillStyle = i % 2 === 0 ? '#631d0e' : '#d6c8ad';
+          ctx.fillRect(cx + i * 16, awningY + 10, 16, 3);
+        }
+
+        ctx.fillStyle = '#241811';
+        ctx.fillRect(cx + 12, awningY - 14, 72, 13);
+        ctx.strokeStyle = '#fbd000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx + 12.5, awningY - 13.5, 71, 12);
+        ctx.fillStyle = '#fbd000';
+        ctx.font = '5px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('COZIMÂNTICA', cx + 48, awningY - 7);
+
+        const counterW = 92;
+        const counterH = 30;
+        const counterTopY = GROUND_Y - counterH;
+
+        ctx.fillStyle = '#6b3e1e';
+        ctx.fillRect(cx + 2, counterTopY + 4, counterW - 4, counterH - 4);
+        ctx.fillStyle = '#824d27';
+        ctx.fillRect(cx + 8, counterTopY + 8, 22, 18);
+        ctx.fillRect(cx + 36, counterTopY + 8, 22, 18);
+        ctx.fillRect(cx + 64, counterTopY + 8, 20, 18);
+        ctx.fillStyle = '#3b210e';
+        ctx.fillRect(cx + 2, GROUND_Y - 4, counterW - 4, 4);
+        ctx.fillStyle = '#bd753e';
+        ctx.fillRect(cx, counterTopY, counterW, 4);
+
+        // Máquina de café expresso
+        const mx = cx + 16;
+        const my = counterTopY - 24;
+
+        ctx.fillStyle = '#b82525';
+        ctx.fillRect(mx, my + 2, 34, 22);
+        ctx.fillStyle = '#df3b3b';
+        ctx.fillRect(mx + 2, my + 4, 30, 8);
+        ctx.fillStyle = '#cfd6e0';
+        ctx.fillRect(mx - 1, my, 36, 3);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(mx + 4, my - 4, 5, 4);
+        ctx.fillRect(mx + 12, my - 4, 5, 4);
+        ctx.fillRect(mx + 8, my - 8, 5, 4);
+
+        ctx.fillStyle = '#232730';
+        ctx.fillRect(mx + 4, my + 12, 26, 9);
+        ctx.fillStyle = '#dfe4ee';
+        ctx.fillRect(mx + 10, my + 12, 12, 3);
+        ctx.fillStyle = '#111111';
+        ctx.fillRect(mx + 22, my + 13, 6, 2);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(mx + 11, my + 17, 4, 4);
+        ctx.fillRect(mx + 17, my + 17, 4, 4);
+        ctx.fillStyle = '#4a2511';
+        ctx.fillRect(mx + 13, my + 15, 1, 2);
+        ctx.fillRect(mx + 19, my + 15, 1, 2);
+
+        ctx.fillStyle = '#aeb6c4';
+        ctx.fillRect(mx + 2, my + 21, 30, 3);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(mx + 26, my + 5, 5, 5);
+        ctx.fillStyle = '#c83232';
+        ctx.fillRect(mx + 28, my + 6, 2, 2);
+
+        const steamShift = Math.floor(state.frame / 14) % 3;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.fillRect(mx + 29, my - 4 - steamShift, 2, 2);
+        ctx.fillRect(mx + 31, my - 8 - steamShift, 2, 2);
+
+        // Moinho
+        const gx = cx + 58;
+        const gy = counterTopY - 20;
+        ctx.fillStyle = '#2d333d';
+        ctx.fillRect(gx + 2, gy + 8, 12, 12);
+        ctx.fillStyle = '#a8d0f0';
+        ctx.fillRect(gx + 1, gy, 14, 8);
+        ctx.fillStyle = '#4f2c16';
+        ctx.fillRect(gx + 3, gy + 3, 10, 5);
+        ctx.fillStyle = '#181b20';
+        ctx.fillRect(gx, gy - 2, 16, 2);
+      }
+
+      function drawS2CargoBike(camX) {
+        const bx = Math.round(S2.BIKE_X - camX);
+        if (bx > VIEW_W + 60 || bx + 110 < -60) return;
+
+        ctx.fillStyle = '#dfe4ee';
+        ctx.fillRect(bx + 54, GROUND_Y - 76, 3, 46);
+
+        const canopyX = bx + 20;
+        const canopyY = GROUND_Y - 86;
+        const stripeColors = ['#ff595e', '#ffca3a', '#1982c4', '#8ac926', '#ff595e', '#ffca3a', '#1982c4'];
+        for (let i = 0; i < stripeColors.length; i++) {
+          ctx.fillStyle = stripeColors[i];
+          ctx.fillRect(canopyX + i * 10, canopyY, 10, 10);
+          ctx.fillRect(canopyX + i * 10, canopyY + 10, 10, 3);
+        }
+        ctx.fillStyle = '#ffca3a';
+        ctx.fillRect(canopyX + 12, canopyY - 4, 46, 4);
+
+        function drawWheel(wx, wy, r) {
+          ctx.fillStyle = '#181a20';
+          ctx.fillRect(wx - r, wy - r + 2, r * 2, r * 2 - 4);
+          ctx.fillRect(wx - r + 2, wy - r, r * 2 - 4, r * 2);
+          ctx.fillStyle = '#aeb6c4';
+          ctx.fillRect(wx - r + 3, wy - r + 3, r * 2 - 6, r * 2 - 6);
+          ctx.fillStyle = '#5c94fc';
+          ctx.fillRect(wx - r + 5, wy - r + 5, r * 2 - 10, r * 2 - 10);
+          ctx.fillStyle = '#dfe4ee';
+          ctx.fillRect(wx - 1, wy - r + 2, 2, r * 2 - 4);
+          ctx.fillRect(wx - r + 2, wy - 1, r * 2 - 4, 2);
+        }
+
+        drawWheel(bx + 14, GROUND_Y - 12, 12);
+        drawWheel(bx + 76, GROUND_Y - 10, 10);
+
+        ctx.fillStyle = '#1597bb';
+        ctx.fillRect(bx + 14, GROUND_Y - 13, 20, 3);
+        ctx.fillRect(bx + 26, GROUND_Y - 28, 3, 16);
+        ctx.fillRect(bx + 16, GROUND_Y - 24, 14, 3);
+        ctx.fillRect(bx + 32, GROUND_Y - 13, 14, 3);
+        ctx.fillRect(bx + 38, GROUND_Y - 36, 3, 24);
+
+        ctx.fillStyle = '#5c3317';
+        ctx.fillRect(bx + 22, GROUND_Y - 31, 10, 3);
+        ctx.fillStyle = '#dfe4ee';
+        ctx.fillRect(bx + 34, GROUND_Y - 38, 10, 2);
+        ctx.fillRect(bx + 29, GROUND_Y - 14, 5, 5);
+
+        const boxX = bx + 44;
+        const boxY = GROUND_Y - 38;
+        const boxW = 46;
+        const boxH = 24;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.fillStyle = '#1982c4';
+        ctx.fillRect(boxX, boxY + 13, boxW, 11);
+        ctx.fillStyle = '#ffca3a';
+        ctx.fillRect(boxX, boxY + 10, boxW, 3);
+        ctx.fillStyle = '#ff595e';
+        ctx.fillRect(boxX - 2, boxY - 3, boxW + 4, 3);
+
+        ctx.strokeStyle = '#181a20';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1);
+
+        ctx.fillStyle = '#14213d';
+        ctx.font = '5px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('LE SACOLÉ', boxX + boxW / 2, boxY + 5.5);
+      }
+
+      function drawS2ProduceMarket(camX) {
+        const fx = Math.round(S2.MARKET_X - camX);
+        if (fx > VIEW_W + 60 || fx + 130 < -60) return;
+
+        ctx.fillStyle = '#5c3a21';
+        ctx.fillRect(fx + 4, GROUND_Y - 82, 4, 82);
+        ctx.fillRect(fx + 114, GROUND_Y - 82, 4, 82);
+
+        const awningY = GROUND_Y - 90;
+        for (let i = 0; i < 8; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#1b8a2e' : '#f7f7f2';
+          ctx.fillRect(fx + i * 15, awningY, 15, 11);
+          ctx.fillStyle = i % 2 === 0 ? '#115e1e' : '#dcdcd2';
+          ctx.fillRect(fx + i * 15, awningY + 11, 15, 3);
+        }
+
+        ctx.fillStyle = '#2d4a22';
+        ctx.fillRect(fx + 14, awningY - 14, 94, 13);
+        ctx.strokeStyle = '#fbd000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(fx + 14.5, awningY - 13.5, 93, 12);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '5.5px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('INSTITUTO CHÃO', fx + 61, awningY - 7);
+
+        const standX = fx + 8;
+        const standW = 106;
+        ctx.fillStyle = '#7c4722';
+        ctx.fillRect(standX, GROUND_Y - 22, standW, 22);
+        ctx.fillStyle = '#573014';
+        ctx.fillRect(standX + 4, GROUND_Y - 18, standW - 8, 18);
+
+        function drawCrate(cx, cy, w, h, mainColor, hiColor, leafColor) {
+          ctx.fillStyle = '#a86832';
+          ctx.fillRect(cx, cy, w, h);
+          ctx.fillStyle = '#6e3f19';
+          ctx.fillRect(cx + 1, cy + 4, w - 2, 2);
+          ctx.fillRect(cx + 1, cy + 9, w - 2, 2);
+
+          for (let px = cx + 2; px < cx + w - 4; px += 5) {
+            ctx.fillStyle = mainColor;
+            ctx.fillRect(px, cy - 4, 4, 4);
+            ctx.fillStyle = hiColor;
+            ctx.fillRect(px + 1, cy - 3, 2, 2);
+            if (leafColor) {
+              ctx.fillStyle = leafColor;
+              ctx.fillRect(px + 1, cy - 6, 2, 2);
+            }
+          }
+        }
+
+        drawCrate(standX + 4, GROUND_Y - 32, 22, 12, '#d62828', '#ff6b6b', '#2b9348');
+        drawCrate(standX + 30, GROUND_Y - 32, 22, 12, '#fcbf49', '#fff07c', null);
+        drawCrate(standX + 56, GROUND_Y - 32, 22, 12, '#38b000', '#80ed99', '#007200');
+        drawCrate(standX + 82, GROUND_Y - 32, 20, 12, '#f77f00', '#ffba5a', '#2b9348');
+
+        drawCrate(standX + 8, GROUND_Y - 16, 26, 13, '#e85d04', '#faa307', '#38b000');
+        drawCrate(standX + 40, GROUND_Y - 16, 26, 13, '#55a630', '#aacc00', '#2b9348');
+        drawCrate(standX + 72, GROUND_Y - 16, 26, 13, '#c1121f', '#f25c54', '#38b000');
+      }
+
+      function drawS2AirportAndPlane(camX) {
+        const ax = Math.round(S2.AIRPORT_X - camX);
+        if (ax > VIEW_W + 60 || ax + 420 < -60) return;
+
+        // Torre de controle
+        const towerX = ax + 14;
+        ctx.fillStyle = '#aeb6c4';
+        ctx.fillRect(towerX + 8, GROUND_Y - 134, 16, 134);
+        ctx.fillStyle = '#7c8594';
+        ctx.fillRect(towerX + 20, GROUND_Y - 134, 4, 134);
+
+        ctx.fillStyle = '#dfe4ee';
+        ctx.fillRect(towerX, GROUND_Y - 154, 32, 20);
+        ctx.fillStyle = '#2b598a';
+        ctx.fillRect(towerX + 2, GROUND_Y - 150, 28, 10);
+        ctx.fillStyle = '#7fb2eb';
+        ctx.fillRect(towerX + 4, GROUND_Y - 148, 8, 6);
+        ctx.fillRect(towerX + 16, GROUND_Y - 148, 8, 6);
+        ctx.fillStyle = '#c83232';
+        ctx.fillRect(towerX + 15, GROUND_Y - 168, 2, 14);
+        ctx.fillRect(towerX + 11, GROUND_Y - 164, 10, 2);
+
+        // Terminal
+        const termX = ax + 46;
+        const termW = 148;
+        const termH = 88;
+        const termY = GROUND_Y - termH;
+
+        ctx.fillStyle = '#d9e0ec';
+        ctx.fillRect(termX, termY, termW, termH);
+        ctx.fillStyle = '#9aa4b5';
+        ctx.fillRect(termX - 4, termY - 6, termW + 8, 6);
+
+        ctx.fillStyle = '#3b6ea5';
+        ctx.fillRect(termX + 10, termY + 28, termW - 20, 44);
+        ctx.fillStyle = '#7fb2eb';
+        for (let wx = termX + 14; wx < termX + termW - 18; wx += 18) {
+          ctx.fillRect(wx, termY + 30, 8, 40);
+        }
+
+        ctx.fillStyle = '#14213d';
+        ctx.fillRect(termX + 24, termY + 6, 100, 16);
+        ctx.strokeStyle = '#fbd000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(termX + 24.5, termY + 6.5, 99, 15);
+        ctx.fillStyle = '#fbd000';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('AEROPORTO', termX + 74, termY + 14.5);
+
+        ctx.fillStyle = '#232730';
+        ctx.fillRect(termX + 62, GROUND_Y - 26, 24, 26);
+        ctx.fillStyle = '#5d92c9';
+        ctx.fillRect(termX + 64, GROUND_Y - 24, 9, 24);
+        ctx.fillRect(termX + 75, GROUND_Y - 24, 9, 24);
+
+        // Avião Comercial
+        const px = ax + 216;
+        const py = GROUND_Y - 56;
+
+        ctx.fillStyle = '#1b8a2e';
+        ctx.fillRect(px + 4, py - 24, 16, 24);
+        ctx.fillRect(px, py - 24, 8, 12);
+        ctx.fillStyle = '#c83232';
+        ctx.fillRect(px + 2, py - 20, 14, 5);
+        ctx.fillStyle = '#fbd000';
+        ctx.fillRect(px + 4, py - 15, 14, 3);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(px + 8, py, 126, 26);
+        ctx.fillRect(px + 134, py + 4, 14, 20);
+        ctx.fillRect(px + 148, py + 9, 10, 13);
+        ctx.fillRect(px + 158, py + 13, 6, 7);
+
+        ctx.fillStyle = '#bcc2ce';
+        ctx.fillRect(px + 12, py + 20, 132, 6);
+
+        ctx.fillStyle = '#1b8a2e';
+        ctx.fillRect(px + 8, py + 15, 136, 3);
+        ctx.fillStyle = '#c83232';
+        ctx.fillRect(px + 8, py + 18, 134, 2);
+
+        ctx.fillStyle = '#1e3a5f';
+        ctx.fillRect(px + 134, py + 6, 12, 6);
+        ctx.fillStyle = '#7fb2eb';
+        ctx.fillRect(px + 136, py + 7, 5, 4);
+
+        ctx.fillStyle = '#2b598a';
+        for (let j = 0; j < 11; j++) {
+          ctx.fillRect(px + 28 + j * 9, py + 7, 5, 5);
+        }
+
+        ctx.fillStyle = '#9aa4b5';
+        ctx.fillRect(px + 58, py + 18, 38, 8);
+        ctx.fillRect(px + 50, py + 24, 30, 5);
+        ctx.fillStyle = '#5a606b';
+        ctx.fillRect(px + 68, py + 26, 18, 9);
+        ctx.fillStyle = '#dfe4ee';
+        ctx.fillRect(px + 84, py + 27, 3, 7);
+
+        ctx.fillStyle = '#3b404a';
+        ctx.fillRect(px + 64, py + 26, 3, 24);
+        ctx.fillRect(px + 132, py + 24, 3, 26);
+        ctx.fillStyle = '#11131a';
+        ctx.fillRect(px + 60, GROUND_Y - 7, 10, 7);
+        ctx.fillRect(px + 129, GROUND_Y - 6, 8, 6);
+      }
+
+      /* --- OBJETOS ESPECÍFICOS DA FASE 3 --- */
+
+      function drawS3Restaurant(camX) {
+        const rx = Math.round(S3.RESTAURANT_X - camX);
+        if (rx > VIEW_W + 60 || rx + 190 < -60) return;
+
+        const rw = 176;
+        const rh = 132;
+        const ry = GROUND_Y - rh;
+
+        ctx.fillStyle = '#b34222';
+        ctx.fillRect(rx - 4, ry - 10, rw + 8, 10);
+        ctx.fillStyle = '#7d2810';
+        ctx.fillRect(rx - 4, ry - 2, rw + 8, 2);
+
+        ctx.fillStyle = '#f0e2c8';
+        ctx.fillRect(rx, ry, rw, rh);
+        ctx.fillStyle = '#cfc0a5';
+        ctx.fillRect(rx + rw - 10, ry, 10, rh);
+
+        ctx.fillStyle = '#3b6ea5';
+        ctx.fillRect(rx, GROUND_Y - 26, rw, 26);
+        ctx.fillStyle = '#ffffff';
+        for (let ax = rx + 4; ax < rx + rw - 6; ax += 8) {
+          ctx.fillRect(ax, GROUND_Y - 22, 3, 3);
+          ctx.fillRect(ax + 4, GROUND_Y - 14, 3, 3);
+        }
+
+        [rx + 22, rx + 76, rx + 130].forEach((wx) => {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(wx - 2, ry + 14, 24, 28);
+          ctx.fillStyle = '#375c85';
+          ctx.fillRect(wx, ry + 16, 20, 24);
+          ctx.fillStyle = '#85b3e6';
+          ctx.fillRect(wx + 2, ry + 18, 6, 20);
+          ctx.fillStyle = '#1f232b';
+          ctx.fillRect(wx - 4, ry + 34, 28, 2);
+          ctx.fillRect(wx - 4, ry + 41, 28, 2);
+        });
+
+        const signW = 136;
+        const signH = 22;
+        const signX = rx + Math.floor((rw - signW) / 2);
+        const signY = ry + 50;
+
+        ctx.fillStyle = '#241710';
+        ctx.fillRect(signX, signY, signW, signH);
+        ctx.strokeStyle = '#fbd000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(signX + 1, signY + 1, signW - 2, signH - 2);
+
+        ctx.fillStyle = '#fbd000';
+        ctx.font = '9px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('RESTAURANTE', signX + signW / 2 + 1, signY + signH / 2 + 1);
+
+        const awningY = ry + 76;
+        for (let i = 0; i < 10; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#1b6b3a' : '#f7f3eb';
+          ctx.fillRect(rx + 8 + i * 16, awningY, 16, 9);
+          ctx.fillStyle = i % 2 === 0 ? '#114726' : '#d6cfc2';
+          ctx.fillRect(rx + 8 + i * 16, awningY + 9, 16, 3);
+        }
+
+        const doorX = rx + 24;
+        const doorY = GROUND_Y - 42;
+        ctx.fillStyle = '#4a2914';
+        ctx.fillRect(doorX, doorY, 30, 42);
+        ctx.fillStyle = '#6ca3d9';
+        ctx.fillRect(doorX + 4, doorY + 5, 9, 18);
+        ctx.fillRect(doorX + 17, doorY + 5, 9, 18);
+
+        const winX = rx + 70;
+        const winY = GROUND_Y - 38;
+        ctx.fillStyle = '#4a2914';
+        ctx.fillRect(winX - 2, winY - 2, 82, 32);
+        ctx.fillStyle = '#ffdf8e';
+        ctx.fillRect(winX, winY, 78, 28);
+        ctx.fillStyle = '#4a2914';
+        ctx.fillRect(winX + 38, winY, 2, 28);
+      }
+
+      function drawS3PastaStation(camX) {
+        const px = Math.round(S3.PASTA_X - camX);
+        if (px > VIEW_W + 60 || px + 120 < -60) return;
+
+        ctx.fillStyle = '#4a2e1b';
+        ctx.fillRect(px + 4, GROUND_Y - 78, 4, 78);
+        ctx.fillRect(px + 96, GROUND_Y - 78, 4, 78);
+
+        const awningY = GROUND_Y - 86;
+        for (let i = 0; i < 6; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#9e3223' : '#f7efe1';
+          ctx.fillRect(px + 2 + i * 16, awningY, 16, 9);
+        }
+
+        ctx.fillStyle = '#1f1611';
+        ctx.fillRect(px + 10, awningY - 14, 84, 13);
+        ctx.strokeStyle = '#fbd000';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 10.5, awningY - 13.5, 83, 12);
+        ctx.fillStyle = '#fbd000';
+        ctx.font = '5.5px "Press Start 2P", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('CAFÉ MORTARA', px + 52, awningY - 7);
+
+        const tableW = 100;
+        const tableH = 28;
+        const tableTopY = GROUND_Y - tableH;
+
+        ctx.fillStyle = '#6b3e1e';
+        ctx.fillRect(px + 2, tableTopY + 4, tableW - 4, tableH - 4);
+        ctx.fillStyle = '#854f29';
+        ctx.fillRect(px + 8, tableTopY + 8, 38, 16);
+        ctx.fillRect(px + 54, tableTopY + 8, 38, 16);
+        ctx.fillStyle = '#c9884f';
+        ctx.fillRect(px, tableTopY, tableW, 4);
+        ctx.fillStyle = '#f2e8d5';
+        ctx.fillRect(px + 14, tableTopY, 54, 2);
+
+        // Máquina de fazer macarrão
+        const mx = px + 26;
+        const my = tableTopY - 18;
+
+        ctx.fillStyle = '#7c8594';
+        ctx.fillRect(mx + 4, my + 14, 22, 4);
+        ctx.fillStyle = '#cfd6e0';
+        ctx.fillRect(mx + 2, my + 2, 26, 12);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(mx + 4, my + 3, 22, 3);
+        ctx.fillStyle = '#49505c';
+        ctx.fillRect(mx + 6, my + 6, 18, 3);
+
+        const crankOffset = Math.sin(state.frame * 0.1) * 2;
+        ctx.fillStyle = '#5a606b';
+        ctx.fillRect(mx + 28, my + 6, 5, 2);
+        ctx.fillRect(mx + 32, my + 4 + crankOffset, 2, 7);
+        ctx.fillStyle = '#8c3b2b';
+        ctx.fillRect(mx + 34, my + 8 + crankOffset, 5, 3);
+
+        ctx.fillStyle = '#f7d560';
+        ctx.fillRect(mx + 8, my - 5, 14, 7);
+        ctx.fillRect(mx + 7, my + 12, 16, 6);
+
+        const rackX = px + 68;
+        ctx.fillStyle = '#9e5e2e';
+        ctx.fillRect(rackX + 10, tableTopY - 22, 2, 22);
+        ctx.fillRect(rackX + 2, tableTopY - 22, 18, 2);
+        ctx.fillStyle = '#f7d560';
+        for (let sx = rackX + 4; sx <= rackX + 16; sx += 3) {
+          ctx.fillRect(sx, tableTopY - 20, 2, 16);
+        }
+
+        ctx.fillStyle = '#b8763e';
+        ctx.fillRect(px + 8, tableTopY - 3, 12, 3);
+      }
+
+      function drawS3StainlessKitchen(camX) {
+        const kx = Math.round(S3.KITCHEN_X - camX);
+        if (kx > VIEW_W + 60 || kx + 180 < -60) return;
+
+        const wallW = 164;
+        const wallH = 92;
+        const wallY = GROUND_Y - wallH;
+
+        ctx.fillStyle = '#e8edf2';
+        ctx.fillRect(kx, wallY, wallW, wallH);
+        ctx.strokeStyle = '#c5ced9';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(kx + 0.5, wallY + 0.5, wallW - 1, wallH - 1);
+
+        ctx.fillStyle = '#cfd7e3';
+        for (let ty = wallY + 12; ty < GROUND_Y - 28; ty += 12) {
+          ctx.fillRect(kx + 1, ty, wallW - 2, 1);
+        }
+
+        // Prateleira e panelas
+        ctx.fillStyle = '#9aa4b5';
+        ctx.fillRect(kx + 10, wallY + 18, 56, 3);
+        ctx.fillStyle = '#cfd6e0';
+        ctx.fillRect(kx + 14, wallY + 9, 14, 9);
+        ctx.fillRect(kx + 32, wallY + 11, 12, 7);
+        ctx.fillStyle = '#5a606b';
+        ctx.fillRect(kx + 28, wallY + 12, 4, 2);
+        ctx.fillRect(kx + 44, wallY + 13, 4, 2);
+
+        // Coifa inox
+        const hoodX = kx + 84;
+        ctx.fillStyle = '#aeb6c4';
+        ctx.fillRect(hoodX + 18, wallY, 28, 12);
+        ctx.fillStyle = '#cfd6e0';
+        ctx.fillRect(hoodX, wallY + 12, 64, 14);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(hoodX + 2, wallY + 14, 60, 3);
+        ctx.fillStyle = '#6f7785';
+        ctx.fillRect(hoodX, wallY + 25, 64, 2);
+
+        // Bancada de preparo inox
+        const prepX = kx + 8;
+        const counterTopY = GROUND_Y - 28;
+        ctx.fillStyle = '#9aa4b5';
+        ctx.fillRect(prepX, counterTopY, 68, 28);
+        ctx.fillStyle = '#dfe5ee';
+        ctx.fillRect(prepX - 1, counterTopY, 70, 4);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(prepX - 1, counterTopY, 70, 1);
+        ctx.fillStyle = '#7e8796';
+        ctx.fillRect(prepX + 4, counterTopY + 7, 28, 17);
+        ctx.fillRect(prepX + 36, counterTopY + 7, 28, 17);
+        ctx.fillStyle = '#dfe5ee';
+        ctx.fillRect(prepX + 28, counterTopY + 11, 2, 8);
+        ctx.fillRect(prepX + 40, counterTopY + 11, 2, 8);
+
+        ctx.fillStyle = '#f5f7fa';
+        ctx.fillRect(prepX + 12, counterTopY - 2, 22, 2);
+        ctx.fillStyle = '#38b000';
+        ctx.fillRect(prepX + 16, counterTopY - 5, 6, 3);
+        ctx.fillStyle = '#d62828';
+        ctx.fillRect(prepX + 24, counterTopY - 5, 5, 3);
+
+        // Fogão industrial inox
+        const stoveX = kx + 84;
+        ctx.fillStyle = '#8b94a3';
+        ctx.fillRect(stoveX, counterTopY, 64, 28);
+        ctx.fillStyle = '#dfe5ee';
+        ctx.fillRect(stoveX - 1, counterTopY, 66, 4);
+        ctx.fillStyle = '#1f232b';
+        for (let bx = stoveX + 6; bx < stoveX + 58; bx += 10) {
+          ctx.fillRect(bx, counterTopY + 6, 4, 3);
+        }
+        ctx.fillStyle = '#2b303a';
+        ctx.fillRect(stoveX + 8, counterTopY + 12, 48, 12);
+        ctx.fillStyle = '#ff9f1c';
+        ctx.fillRect(stoveX + 12, counterTopY + 14, 40, 7);
+
+        const flameFlicker = Math.floor(state.frame / 8) % 2;
+        ctx.fillStyle = '#38b6ff';
+        ctx.fillRect(stoveX + 10 + flameFlicker, counterTopY - 2, 12, 2);
+        ctx.fillRect(stoveX + 40 - flameFlicker, counterTopY - 2, 14, 2);
+
+        ctx.fillStyle = '#5a606b';
+        ctx.fillRect(stoveX + 8, counterTopY - 10, 16, 8);
+        ctx.fillRect(stoveX + 38, counterTopY - 7, 18, 5);
+        ctx.fillStyle = '#1f232b';
+        ctx.fillRect(stoveX + 56, counterTopY - 6, 7, 2);
+
+        const steamShift = Math.floor(state.frame / 12) % 4;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.fillRect(stoveX + 14, counterTopY - 14 - steamShift, 2, 2);
+        ctx.fillRect(stoveX + 45, counterTopY - 11 - steamShift, 2, 2);
+      }
+
+      function drawS3ComputerDesk(camX) {
+        const dx = Math.round(S3.COMPUTER_X - camX);
+        if (dx > VIEW_W + 60 || dx + 100 < -60) return;
+
+        // Cadeira
+        ctx.fillStyle = '#232730';
+        ctx.fillRect(dx + 1, GROUND_Y - 32, 3, 18);
+        ctx.fillRect(dx, GROUND_Y - 15, 15, 3);
+        ctx.fillRect(dx + 6, GROUND_Y - 12, 3, 9);
+        ctx.fillRect(dx + 2, GROUND_Y - 3, 11, 3);
+
+        // Mesa
+        const tableX = dx + 18;
+        const tableW = 58;
+        const tableTopY = GROUND_Y - 24;
+
+        ctx.fillStyle = '#3b404a';
+        ctx.fillRect(tableX + 4, tableTopY + 4, 4, 20);
+        ctx.fillRect(tableX + tableW - 8, tableTopY + 4, 4, 20);
+        ctx.fillStyle = '#c4864b';
+        ctx.fillRect(tableX, tableTopY, tableW, 4);
+        ctx.fillStyle = '#e0a267';
+        ctx.fillRect(tableX, tableTopY, tableW, 1);
+
+        // Computador
+        const monX = tableX + 16;
+        const monY = tableTopY - 22;
+
+        ctx.fillStyle = '#2b303a';
+        ctx.fillRect(monX + 9, tableTopY - 2, 12, 2);
+        ctx.fillRect(monX + 13, tableTopY - 6, 4, 4);
+
+        ctx.fillStyle = '#1b1e24';
+        ctx.fillRect(monX, monY, 30, 17);
+        ctx.fillStyle = '#0f294a';
+        ctx.fillRect(monX + 2, monY + 2, 26, 13);
+
+        ctx.fillStyle = '#43c43b';
+        ctx.fillRect(monX + 4, monY + 4, 12, 2);
+        ctx.fillStyle = '#fbd000';
+        ctx.fillRect(monX + 4, monY + 7, 18, 2);
+        ctx.fillStyle = '#5cd6ff';
+        ctx.fillRect(monX + 4, monY + 10, 14, 2);
+
+        if (Math.floor(state.frame / 18) % 2 === 0) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(monX + 20, monY + 10, 3, 2);
+        }
+
+        ctx.fillStyle = '#cfd6e0';
+        ctx.fillRect(tableX + 12, tableTopY - 2, 18, 2);
+        ctx.fillRect(tableX + 34, tableTopY - 2, 4, 2);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(tableX + 47, tableTopY - 5, 5, 5);
+        ctx.fillStyle = '#c83232';
+        ctx.fillRect(tableX + 48, tableTopY - 4, 3, 2);
+      }
+
+      /* --- BANDEIRAS FINAIS (FASE 1 E FASE 3) --- */
+
+      function drawFinishFlag(flagX, camX, stageNum) {
+        const fx = Math.round(flagX - camX);
+        if (fx > VIEW_W + 40 || fx < -40) return;
+
+        ctx.fillStyle = '#5a606b';
+        ctx.fillRect(fx - 6, GROUND_Y - 8, 16, 8);
+        ctx.fillStyle = '#dfe4ee';
+        ctx.fillRect(fx + 1, GROUND_Y - 96, 3, 88);
+        ctx.fillStyle = '#fbd000';
+        ctx.fillRect(fx - 1, GROUND_Y - 101, 7, 5);
+
+        const wave = Math.sin(state.frame * 0.12) * 1.5;
+        if (stageNum === 1) {
+          ctx.fillStyle = '#1ca62c';
+          ctx.fillRect(fx + 4, GROUND_Y - 94, 34, 20);
+          ctx.fillRect(fx + 38, GROUND_Y - 94 + wave, 8, 18);
+          ctx.fillStyle = '#fbd000';
+          ctx.font = '6px "Press Start 2P", monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText('FIM 1', fx + 7, GROUND_Y - 82);
+        } else {
+          ctx.fillStyle = '#1b8a2e';
+          ctx.fillRect(fx + 4, GROUND_Y - 94, 16, 20);
+          ctx.fillStyle = '#c83232';
+          ctx.fillRect(fx + 20, GROUND_Y - 94, 24, 20);
+          ctx.fillRect(fx + 44, GROUND_Y - 94 + wave, 8, 18);
+          ctx.fillStyle = '#fbd000';
+          ctx.fillRect(fx + 18, GROUND_Y - 86, 5, 5);
+        }
+      }
+
+      /**
+       * Desenha o personagem jogável adaptando-se automaticamente à fase atual:
+       * - Fase 1: Boné azul, sem bigode (e pose especial olhando para cima na FFLCH)
+       * - Fase 2: Boné azul, COM bigode
+       * - Fase 3: SEM boné (cabelo castanho no topo), COM bigode
+       */
+      function drawPlayer(camX) {
+        const p = state.player;
+        const stage = state.currentStage;
+        const sx = Math.round(p.x - camX);
+        const bob = (p.onGround && Math.abs(p.vx) > 0.1 && (p.walkFrame === 0 || p.walkFrame === 2)) ? -1 : 0;
+        const sy = Math.round(p.y) + bob;
+        const scale = 1.5;
+
+        // Cabeça/Rosto adaptado por fase (7 primeiras linhas do sprite 16x24)
+        let headRows;
+        if (stage === 1 && p.lookingUp) {
+          headRows = [
+            ".....bbbbb......",
+            "....BBBBBBB.....",
+            "...BBBBBBBBB....",
+            "...HHHSSSSES....",
+            "..HHSSSSSSSS....",
+            "..HHSSSSSSSS....",
+            "...SSSSSSSS....."
+          ];
+        } else if (stage === 1) {
+          headRows = [
+            "....BBBBBB......",
+            "...BBBBBBBB.....",
+            "...BBBBbbbbb....",
+            "...HHHSSSSS.....",
+            "..HHSSSSSSSS....",
+            "..HHSSSSESSS....",
+            "...SSSSSSSS....."
+          ];
+        } else if (stage === 2) {
+          headRows = [
+            "....BBBBBB......",
+            "...BBBBBBBB.....",
+            "...BBBBbbbbb....",
+            "...HHHSSSSS.....",
+            "..HHSSSSSSSS....",
+            "..HHSSSSESSS....",
+            "...SSSSSMMM....."
+          ];
+        } else {
+          // Fase 3: Sem boné, cabelo castanho + bigode
+          headRows = [
+            "....HHHHHH......",
+            "...HHHHHHHH.....",
+            "...HHhhHHHHH....",
+            "...HHHSSSSS.....",
+            "..HHSSSSSSSS....",
+            "..HHSSSSESSS....",
+            "...SSSSSMMM....."
+          ];
+        }
+
+        // Tronco compartilhado (linhas 7 a 13)
+        const torsoRows = [
+          "....SSSSSS......",
+          "...GGGGGGGG.....",
+          "..GGGGGGGGGG....",
+          "..GGgGGGGgGG....",
+          "..SSgGGGGgSS....",
+          "..SSGGGGGGSS....",
+          "...GGGGGGGG....."
+        ];
+
+        // Pernas (linhas 14 a 23) com ciclo suave de 4 frames
+        const legsNeutral = [
+          "....JJJJJJ......",
+          "....JJj.jJJ.....",
+          "....JJ...JJ.....",
+          "....JJ...JJ.....",
+          "....JJ...JJ.....",
+          "....JJ...JJ.....",
+          "...KKK...KKK....",
+          "..KKKK...KKKK...",
+          "..kkkk...kkkk...",
+          "................"
+        ];
+        const legsStepA = [
+          "....JJJJJJ......",
+          "...JJJ..JJJ.....",
+          "...JJ....JJ.....",
+          "..JJ.....JJ.....",
+          "..JJ.....JJ.....",
+          "..JJ.....JJ.....",
+          "..KKK....KKK....",
+          ".KKKK....KKKK...",
+          ".kkkk....kkkk...",
+          "................"
+        ];
+        const legsStepB = [
+          "....JJJJJJ......",
+          "....JJJ..JJJ....",
+          "....JJ....JJ....",
+          "....JJ.....JJ...",
+          "....JJ.....JJ...",
+          "....JJ.....JJ...",
+          "...KKK.....KKK..",
+          "...KKKK....KKKK.",
+          "...kkkk....kkkk.",
+          "................"
+        ];
+
+        let activeLegs = legsNeutral;
+        if (!p.lookingUp) {
+          if (p.walkFrame === 1) activeLegs = legsStepA;
+          else if (p.walkFrame === 3) activeLegs = legsStepB;
+        }
+
+        const activeSprite = headRows.concat(torsoRows, activeLegs);
+
+        const palette = {
+          B: '#1848b8',
+          b: '#4888ff',
+          H: '#4a2810',
+          h: '#6e3f1d',
+          M: '#4a2810',
+          S: '#f8b888',
+          E: '#101010',
+          G: '#1ca62c',
+          g: '#116b1b',
+          J: '#205098',
+          j: '#3670c4',
+          K: '#141418',
+          k: '#4a4a54'
+        };
+
+        for (let row = 0; row < activeSprite.length; row++) {
+          const line = activeSprite[row];
+          for (let col = 0; col < line.length; col++) {
+            const ch = line[col];
+            if (ch === '.') continue;
+            ctx.fillStyle = palette[ch];
+            const drawCol = p.facing === 1 ? col : 15 - col;
+            ctx.fillRect(
+              Math.round(sx + drawCol * scale),
+              Math.round(sy + row * scale),
+              Math.ceil(scale),
+              Math.ceil(scale)
+            );
+          }
+        }
+      }
+
+      /**
+       * Caixa de diálogo estilo RPG NES (com título opcional e altura dinâmica)
+       */
+      function drawDialogueBox() {
+        if (!state.activeDialogueKey) return;
+
+        const data = DIALOGUES[state.activeDialogueKey];
+        const hasTitle = Boolean(data.title && data.title.trim().length > 0);
+        const visibleText = data.text.slice(0, state.typedChars);
+
+        const boxX = 18;
+        const boxY = 10;
+        const boxW = VIEW_W - 36;
+
+        ctx.font = '7px "Press Start 2P", monospace';
+        const maxTextWidth = boxW - 26;
+        const words = data.text.split(' ');
+        const fullLines = [];
+        let tempLine = '';
+
+        for (let i = 0; i < words.length; i++) {
+          const testLine = tempLine + words[i] + ' ';
+          if (ctx.measureText(testLine).width > maxTextWidth && i > 0) {
+            fullLines.push(tempLine.trim());
+            tempLine = words[i] + ' ';
+          } else {
+            tempLine = testLine;
+          }
+        }
+        fullLines.push(tempLine.trim());
+
+        const lineHeight = 11;
+        const headerOffset = hasTitle ? 26 : 13;
+        const boxH = Math.max(74, headerOffset + 20 + fullLines.length * lineHeight);
+
+        // Sombra
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.62)';
+        ctx.fillRect(boxX + 4, boxY + 4, boxW, boxH);
+
+        // Fundo azul escuro RPG NES
+        ctx.fillStyle = '#0c1c44';
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+
+        // Borda dupla branca
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(boxX + 2, boxY + 2, boxW - 4, boxH - 4);
+        ctx.strokeRect(boxX + 5, boxY + 5, boxW - 10, boxH - 10);
+
+        if (hasTitle) {
+          ctx.fillStyle = '#fbd000';
+          ctx.font = '7px "Press Start 2P", monospace';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText(data.title, boxX + 13, boxY + 11);
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '7px "Press Start 2P", monospace';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        const visWords = visibleText.split(' ');
+        let line = '';
+        let lineY = boxY + headerOffset;
+
+        for (let i = 0; i < visWords.length; i++) {
+          const testLine = line + visWords[i] + ' ';
+          if (ctx.measureText(testLine).width > maxTextWidth && i > 0) {
+            ctx.fillText(line.trim(), boxX + 13, lineY);
+            line = visWords[i] + ' ';
+            lineY += lineHeight;
+          } else {
+            line = testLine;
+          }
+        }
+        ctx.fillText(line.trim(), boxX + 13, lineY);
+
+        const isDone = state.typedChars >= data.text.length;
+        const blink = Math.floor(state.frame / 22) % 2 === 0;
+        ctx.fillStyle = isDone ? (blink ? '#43c43b' : '#ffffff') : '#b0b8d1';
+        ctx.font = '6px "Press Start 2P", monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(
+          isDone ? '[ESPAÇO / OK] CONTINUAR ▶' : '[ESPAÇO / OK] COMPLETAR',
+          boxX + boxW - 13,
+          boxY + boxH - 13
+        );
+      }
+
+      /**
+       * Banner de conclusão de cada fase com transição automática para a próxima
+       */
+      function drawStageClearBanner() {
+        if (!state.stageCompleted) return;
+
+        const stage = state.currentStage;
+        const bw = 392;
+        const bh = stage === 3 ? 116 : 98;
+        const bx = (VIEW_W - bw) / 2;
+        const by = 28;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+        ctx.fillRect(bx + 4, by + 4, bw, bh);
+
+        ctx.fillStyle = '#0c1c44';
+        ctx.fillRect(bx, by, bw, bh);
+
+        ctx.strokeStyle = '#fbd000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(bx + 2, by + 2, bw - 4, bh - 4);
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const blink = Math.floor(state.frame / 22) % 2 === 0;
+
+        if (stage === 1) {
+          ctx.fillStyle = '#fbd000';
+          ctx.font = '11px "Press Start 2P", monospace';
+          ctx.fillText('FASE 1 CONCLUÍDA!', VIEW_W / 2, by + 14);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '7px "Press Start 2P", monospace';
+          ctx.fillText('FORMAÇÃO & COMEÇO DE CARREIRA (SP)', VIEW_W / 2, by + 36);
+
+          ctx.fillStyle = blink ? '#43c43b' : '#a8f0a4';
+          ctx.fillText('[ESPAÇO / OK] IR PARA FASE 2 ▶', VIEW_W / 2, by + 64);
+        } else if (stage === 2) {
+          ctx.fillStyle = '#fbd000';
+          ctx.font = '11px "Press Start 2P", monospace';
+          ctx.fillText('FASE 2 CONCLUÍDA!', VIEW_W / 2, by + 14);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '7px "Press Start 2P", monospace';
+          ctx.fillText('EMBARQUE PARA LISBOA • PORTUGAL', VIEW_W / 2, by + 36);
+
+          ctx.fillStyle = blink ? '#43c43b' : '#a8f0a4';
+          ctx.fillText('[ESPAÇO / OK] IR PARA FASE 3 ▶', VIEW_W / 2, by + 64);
+        } else {
+          ctx.fillStyle = '#fbd000';
+          ctx.font = '10.5px "Press Start 2P", monospace';
+          ctx.fillText('CURRÍCULO 8-BIT CONCLUÍDO!', VIEW_W / 2, by + 14);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '7px "Press Start 2P", monospace';
+          ctx.fillText('VITOR MORTARA • LISBOA, PORTUGAL', VIEW_W / 2, by + 36);
+
+          ctx.fillStyle = '#a8c6fa';
+          ctx.font = '6.5px "Press Start 2P", monospace';
+          ctx.fillText('vitor.mortara@gmail.com • +351 916 644 788', VIEW_W / 2, by + 56);
+
+          ctx.fillStyle = blink ? '#43c43b' : '#a8f0a4';
+          ctx.font = '7px "Press Start 2P", monospace';
+          ctx.fillText('[ESPAÇO / OK] JOGAR NOVAMENTE ↺', VIEW_W / 2, by + 84);
+        }
+      }
+
+      /**
+       * Renderiza o frame completo da fase ativa
+       */
+      function render() {
+        const stage = state.currentStage;
+
+        // 1. Céu azul clássico 8-bit
+        ctx.fillStyle = '#5C94FC';
+        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+        // 2. Nuvens pixeladas
+        clouds.forEach((c) => {
+          const screenX = Math.round(c.x - state.cameraX * 0.35);
+          if (screenX > -80 && screenX < VIEW_W + 80) {
+            drawCloud(screenX, c.y, c.size);
+          }
+        });
+
+        // 3. Cenário de fundo conforme a fase
+        if (stage === 1) {
+          drawSPBuildings(spBuildingsS1, state.cameraX, -100);
+          s1Trees.forEach((item) => {
+            const screenX = Math.round(item.x - state.cameraX);
+            if (screenX > -60 && screenX < VIEW_W + 60) {
+              drawS1Foliage(item, screenX);
+            }
+          });
+        } else if (stage === 2) {
+          drawSPBuildings(spBuildingsS2, state.cameraX, 0);
+        } else {
+          drawLisbonBuildings(state.cameraX);
+        }
+
+        // 4. Chão da fase
+        drawGround(state.cameraX);
+
+        // 5. Marcos e objetos interativos da fase
+        if (stage === 1) {
+          drawS1FFLCH(state.cameraX);
+          drawS1WritingDesk(state.cameraX);
+          drawFinishFlag(S1.FINISH_FLAG_X, state.cameraX, 1);
+        } else if (stage === 2) {
+          drawS2CoffeeCounter(state.cameraX);
+          drawS2CargoBike(state.cameraX);
+          drawS2ProduceMarket(state.cameraX);
+          drawS2AirportAndPlane(state.cameraX);
+        } else {
+          drawS3Restaurant(state.cameraX);
+          drawS3PastaStation(state.cameraX);
+          drawS3StainlessKitchen(state.cameraX);
+          drawS3ComputerDesk(state.cameraX);
+          drawFinishFlag(S3.FINISH_FLAG_X, state.cameraX, 3);
+        }
+
+        // 6. Personagem jogável
+        drawPlayer(state.cameraX);
+
+        // 7. Dica inicial
+        if (state.player.x < 130 && !state.activeDialogueKey && !state.stageCompleted) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '8px "Press Start 2P", monospace';
+          ctx.textAlign = 'left';
+          ctx.fillText('SIGA PARA A DIREITA →', 20, 22);
+        }
+
+        // 8. Caixas de diálogo e banners de conclusão
+        drawDialogueBox();
+        drawStageClearBanner();
+      }
+
+      function gameLoop() {
+        update();
+        render();
+        requestAnimationFrame(gameLoop);
+      }
+
+      window.onload = function () {
+        loadStage(1);
+        gameLoop();
+      };
+    })();
+  </script>
+</body>
+</html>
